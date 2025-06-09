@@ -1,0 +1,97 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Créer un compte - Étudiant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: white;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      padding: 20px 40px;
+      background: linear-gradient(to right, #fc67fa, #6e67ff);
+      color: white;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .logo img {
+      height: 60px;
+      margin-right: 15px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-top: 60px;
+      font-size: 2rem;
+      color: #333;
+    }
+
+    form {
+      max-width: 400px;
+      margin: 30px auto;
+      padding: 30px;
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      background-color: #fff;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    button {
+      background: linear-gradient(to right, #fc67fa, #6e67ff);
+      color: white;
+      border: none;
+      padding: 12px;
+      width: 100%;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <img src="{% static 'images/logo.png' %}" alt="FeedBackFlow Logo" />
+      FeedBackFlow
+    </div>
+  </header>
+
+  <h2>Créer un compte Étudiant</h2>
+  <form method="POST">
+    {% csrf_token %}
+    <input type="text" name="username" placeholder="Nom d'utilisateur" required />
+    <input type="email" name="email" placeholder="Email" required />
+    <input type="text" name="telephone" placeholder="Téléphone" />
+    <input type="password" name="password" placeholder="Mot de passe" required />
+    <button type="submit">Créer un compte</button>
+  </form>
+</body>
+</html>
