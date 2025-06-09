@@ -7,7 +7,7 @@
   <title>FeedBackFlow - Affectation Chef de Filière</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
+    <style>
     :root {
       --primary-color: #6e67ff;
       --secondary-color: #fc67fa;
@@ -216,95 +216,168 @@
 
     .filieres-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 25px;
     }
 
+    /* DESIGN PROFESSIONNEL DES CARTES */
     .filiere-card {
-      background-color: var(--card-bg);
-      border-radius: 12px;
-      padding: 25px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-      transition: var(--transition);
-      border-left: 4px solid var(--warning-color);
+      background: linear-gradient(145deg, #ffffff, #f8f9fa);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 
+        0 10px 30px rgba(110, 103, 255, 0.08),
+        0 4px 15px rgba(0, 0, 0, 0.05);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 1px solid rgba(110, 103, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .filiere-card:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(135deg, var(--warning-color), #f39c12);
+      border-radius: 20px 20px 0 0;
+    }
+
+    .filiere-card.has-chef:before {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     }
 
     .filiere-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+      transform: translateY(-12px) scale(1.02);
+      box-shadow: 
+        0 25px 50px rgba(110, 103, 255, 0.15),
+        0 15px 35px rgba(0, 0, 0, 0.1);
     }
 
-    .filiere-card.has-chef {
-      border-left-color: var(--positive-color);
+    .filiere-card:after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(110, 103, 255, 0.03) 0%, transparent 70%);
+      transition: var(--transition);
+      opacity: 0;
+    }
+
+    .filiere-card:hover:after {
+      opacity: 1;
     }
 
     .filiere-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
+      position: relative;
+      z-index: 2;
     }
 
     .filiere-name {
-      font-size: 1.2rem;
-      font-weight: 600;
+      font-size: 1.3rem;
+      font-weight: 700;
       color: var(--dark);
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .status-badge {
-      padding: 5px 12px;
-      border-radius: 20px;
+      padding: 8px 16px;
+      border-radius: 25px;
       font-size: 0.8rem;
-      font-weight: 500;
-      background-color: var(--warning-color);
-      color: var(--dark);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #ffc107, #f39c12);
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .status-badge.has-chef {
-      background-color: var(--positive-color);
-      color: white;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      box-shadow: 0 4px 15px rgba(110, 103, 255, 0.3);
     }
 
     .filiere-info {
-      margin-bottom: 20px;
+      margin-bottom: 25px;
       color: var(--neutral-color);
+      position: relative;
+      z-index: 2;
     }
 
     .filiere-info p {
-      margin-bottom: 8px;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
+      padding: 8px 0;
+      font-weight: 500;
     }
 
     .filiere-info i {
-      width: 16px;
-      color: var(--primary-color);
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
+      border-radius: 50%;
+      font-size: 0.8rem;
     }
 
     .current-chef {
-      background-color: rgba(40, 167, 69, 0.1);
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      border-left: 3px solid var(--positive-color);
+      background: linear-gradient(135deg, rgba(110, 103, 255, 0.1), rgba(252, 103, 250, 0.05));
+      padding: 20px;
+      border-radius: 15px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(110, 103, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .current-chef:before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     }
 
     .current-chef .chef-name {
-      font-weight: 600;
-      color: var(--positive-color);
+      font-weight: 700;
+      color: var(--primary-color);
+      font-size: 1.1rem;
+      margin-bottom: 5px;
     }
 
     .affectation-form {
       display: flex;
-      gap: 10px;
+      gap: 15px;
       align-items: flex-start;
       flex-direction: column;
+      position: relative;
+      z-index: 2;
     }
 
     .form-row {
       display: flex;
-      gap: 10px;
+      gap: 15px;
       width: 100%;
       align-items: flex-end;
     }
@@ -316,21 +389,26 @@
 
     .chef-select {
       width: 100%;
-      padding: 12px 15px;
-      border: 2px solid var(--border-light);
-      border-radius: 8px;
-      font-size: 0.9rem;
-      background-color: white;
+      padding: 15px 20px;
+      border: 2px solid rgba(110, 103, 255, 0.2);
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      background: linear-gradient(145deg, #ffffff, #f8f9fa);
       color: var(--dark);
-      transition: var(--transition);
+      transition: all 0.3s ease;
       appearance: none;
       cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
     }
 
     .chef-select:focus {
       outline: none;
       border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(110, 103, 255, 0.1);
+      box-shadow: 
+        0 0 0 4px rgba(110, 103, 255, 0.1),
+        0 8px 25px rgba(110, 103, 255, 0.15);
+      transform: translateY(-2px);
     }
 
     .select-wrapper::after {
@@ -338,123 +416,190 @@
       font-family: 'Font Awesome 6 Free';
       font-weight: 900;
       position: absolute;
-      right: 15px;
+      right: 20px;
       top: 50%;
       transform: translateY(-50%);
-      color: var(--neutral-color);
+      color: var(--primary-color);
       pointer-events: none;
+      font-size: 1.1rem;
     }
 
     .new-chef-fields {
       display: none;
       width: 100%;
-      gap: 10px;
-      margin-top: 15px;
-      padding: 15px;
-      background-color: rgba(110, 103, 255, 0.05);
-      border-radius: 8px;
-      border: 1px solid rgba(110, 103, 255, 0.2);
+      gap: 15px;
+      margin-top: 20px;
+      padding: 25px;
+      background: linear-gradient(145deg, rgba(110, 103, 255, 0.05), rgba(252, 103, 250, 0.02));
+      border-radius: 15px;
+      border: 2px solid rgba(110, 103, 255, 0.15);
+      backdrop-filter: blur(10px);
     }
 
     .new-chef-fields.show {
       display: flex;
       flex-direction: column;
+      animation: slideDown 0.4s ease;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .input-group {
       display: flex;
-      gap: 10px;
+      gap: 15px;
     }
 
     .input-field {
       flex: 1;
-      padding: 12px 15px;
-      border: 2px solid var(--border-light);
-      border-radius: 8px;
-      font-size: 0.9rem;
-      background-color: white;
+      padding: 15px 20px;
+      border: 2px solid rgba(110, 103, 255, 0.2);
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      background: linear-gradient(145deg, #ffffff, #f8f9fa);
       color: var(--dark);
-      transition: var(--transition);
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
     }
 
     .input-field:focus {
       outline: none;
       border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(110, 103, 255, 0.1);
+      box-shadow: 
+        0 0 0 4px rgba(110, 103, 255, 0.1),
+        0 8px 25px rgba(110, 103, 255, 0.15);
+      transform: translateY(-2px);
     }
 
     .input-field::placeholder {
       color: var(--neutral-color);
       opacity: 0.7;
+      font-weight: 400;
     }
 
+    /* BOUTONS PROFESSIONNELS */
     .assign-btn {
-      padding: 12px 20px;
-      background: linear-gradient(135deg, var(--positive-color), #20c997);
+      padding: 15px 25px;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
       color: white;
       border: none;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      font-weight: 500;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: var(--transition);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       display: flex;
       align-items: center;
-      gap: 8px;
-      min-width: 120px;
+      gap: 10px;
+      min-width: 140px;
       justify-content: center;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 
+        0 8px 25px rgba(110, 103, 255, 0.3),
+        0 4px 15px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .assign-btn:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .assign-btn:hover:before {
+      left: 100%;
     }
 
     .assign-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+      transform: translateY(-4px) scale(1.05);
+      box-shadow: 
+        0 15px 35px rgba(110, 103, 255, 0.4),
+        0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .assign-btn:active {
+      transform: translateY(-2px) scale(1.02);
     }
 
     .assign-btn:disabled {
-      background: var(--neutral-color);
+      background: linear-gradient(135deg, var(--neutral-color), #5a6268);
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
     }
 
     .modify-btn {
-      background: linear-gradient(135deg, var(--modify-color), #e8590c);
-      min-width: 130px;
+      background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+      min-width: 150px;
     }
 
     .modify-btn:hover {
-      box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3);
+      box-shadow: 
+        0 15px 35px rgba(252, 103, 250, 0.4),
+        0 8px 25px rgba(0, 0, 0, 0.15);
     }
 
     .action-buttons {
       display: flex;
-      gap: 10px;
-      margin-top: 15px;
+      gap: 15px;
+      margin-top: 20px;
     }
 
     .toggle-btn {
-      padding: 8px 15px;
+      padding: 12px 20px;
       background: transparent;
       color: var(--primary-color);
       border: 2px solid var(--primary-color);
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 500;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: var(--transition);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .toggle-btn:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      transition: width 0.3s ease;
+      z-index: -1;
     }
 
     .toggle-btn:hover {
-      background-color: var(--primary-color);
       color: white;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(110, 103, 255, 0.3);
+    }
+
+    .toggle-btn:hover:before {
+      width: 100%;
     }
 
     .toggle-btn.active {
-      background-color: var(--primary-color);
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
       color: white;
+      box-shadow: 0 8px 25px rgba(110, 103, 255, 0.3);
     }
 
     .no-filieres {
@@ -512,13 +657,16 @@
     }
 
     .form-section-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--primary-color);
-      margin-bottom: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 15px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     @media (max-width: 768px) {
