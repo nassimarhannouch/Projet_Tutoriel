@@ -1,0 +1,178 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FeedBackFlow Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Poppins', sans-serif;
+      background: white;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 25px 40px;
+      color: rgb(9, 0, 0);
+      position: relative;
+      z-index: 2;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      font-weight: bold;
+      font-size: 1.5rem;
+      color: #0b0b0b;
+    }
+
+    .logo img {
+      height: 80px;
+      margin-right: 20px;
+    }
+
+    nav a {
+      margin-left: 25px;
+      text-decoration: none;
+      color: black;
+      font-weight: 500;
+      font-size: 1rem;
+    }
+
+    .btn-learn {
+      border: 2px solid #d158ff;
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+
+    .about-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 50px;
+      background-color: #ffffff;
+    }
+
+    .about-text {
+      max-width: 50%;
+    }
+
+    .about-text h2 {
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-size: 20px;
+      color: #060606;
+      line-height: 2;
+    }
+
+    .about-text h1 {
+      font-size: 36px;
+      color: #1a1a1a;
+      line-height: 2;
+    }
+
+    .feedback {
+      font-size: 45px;
+      font-weight: bold;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(90deg, #d158ff, #6e67ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 1px #d158ff, 0 0 2px #6e67ff, 0 0 5px #d158ff, 0 0 7px #6e67ff;
+    }
+
+    .feedback-p {
+      font-size: 20px;
+      font-weight: bold;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(90deg, #d158ff, #6e67ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .about-text p {
+      color: black;
+      line-height: 2;
+      margin-top: 20px;
+    }
+
+    .about-text p::before {
+      content: "➤";
+      color: #d158ff;
+      margin-right: 8px;
+      font-weight: bold;
+    }
+
+    .about-text a {
+      display: inline-block;
+      margin-top: 30px;
+      padding: 12px 24px;
+      background-color: #6366f1;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .about-image img {
+      max-width: 600px;
+      border-radius: 20px;
+    }
+
+    @media screen and (max-width: 768px) {
+      .about-section {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .about-text,
+      .about-image {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-right-bg"></div>
+
+  <header>
+    <div class="logo">
+        <img src="{% static 'images/logo.png' %}" alt="FeedBackFlow Logo" />
+        <span>FeedBackFlow</span>
+      </div>
+    <nav>
+      <a class="btn-learn" href="about.html">Learn More</a>
+      <a href="{% url 'contact' %}">Contact</a>
+      <a href="{% url 'login' %}">Login</a>
+    </nav>
+  </header>
+
+  <section class="about-section">
+    <div class="about-text">
+      <h2>About Us</h2>
+      <h1>So why <span class="feedback">FeedbackFlow</span>?</h1>
+      <p>
+        Our project <span class="feedback-p">FeedbackFlow</span> is about creating an easy-to-use and smart online platform where students can give feedback on their courses, teachers, and learning experience. Instead of just collecting this feedback and leaving it unread, the platform will use artificial intelligence (AI) to automatically analyze the comments. The system will detect whether each message is positive, negative, or neutral, which helps turn raw opinions into useful insights.
+      </p>
+      <p>
+        The goal is to help teachers understand what students really think, so they can improve their teaching methods. For example, if many students say a course is too fast or confusing, the system will recommend ways to adjust the pace or clarify the lessons. These AI-powered suggestions will be sent directly to the teachers in a clear and friendly way.
+      </p>
+    </div>
+    <div class="about-image">
+        <img src="{% static 'images/aboutus-removebg-preview.png' %}" alt="FeedBackFlow Logo" />
+    </div>
+  </section>
+</body>
+</html>

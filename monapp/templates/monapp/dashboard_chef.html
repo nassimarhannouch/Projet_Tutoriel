@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Chef de Filière</title>
+    {% load static %}
+     <style>
+    :root {
+      --primary-color: #6e67ff;
+      --secondary-color: #fc67fa;
+      --bg-color: #ffffff; /* Modifié en blanc pour être uniforme */
+      --content-bg: #ffffff;
+      --text-color: #333;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+      --card-bg: #f8f9fa;
+      --border-light: #e9ecef;
+      --positive-color: #28a745;
+      --neutral-color: #6c757d;
+      --negative-color: #dc3545;
+      --white: #ffffff;
+      --dark: #333333;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--dark);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background-color: var(--bg-color); /* Modifié pour utiliser la même variable que le corps */
+      padding: 15px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      /* Suppression de l'ombre portée pour enlever la séparation */
+      border-bottom: none;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      font-size: 1.5em;
+      font-weight: bold;
+      color: var(--primary-color);
+      text-decoration: none;
+    }
+    
+    .logo img {
+      height: 50px;
+      margin-right: 10px;
+      transition: var(--transition);
+    }
+    
+    .logo:hover img {
+      transform: scale(1.05);
+    }
+    
+    /* Navigation */
+    .header-right {
+      display: flex;
+      align-items: center;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .nav-btn {
+      padding: 10px 20px;
+      font-size: 0.95em;
+      text-decoration: none;
+      border-radius: 25px;
+      background-color: transparent;
+      color: var(--text-color);
+      transition: var(--transition);
+      font-weight: 500;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .nav-btn:before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(to right, var(--secondary-color), var(--primary-color));
+      transition: var(--transition);
+      transform: translateX(-50%);
+    }
+    
+    .nav-btn:hover:before {
+      width: 80%;
+    }
+    
+    .nav-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .logout-btn {
+      background: linear-gradient(to right, var(--secondary-color), var(--primary-color));
+      color: white;
+      box-shadow: 0 4px 15px rgba(110, 103, 255, 0.3);
+    }
+    
+    .logout-btn:before {
+      display: none;
+    }
+    
+    /* Main Content */
+    .content-wrapper {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 30px;
+      /* Suppression de la marge pour éviter la séparation visuelle */
+      margin-top: 0;
+    }
+
+    .content {
+      background-color: var(--content-bg);
+      border-radius: 12px;
+      /* Suppression de l'ombre portée pour une meilleure intégration visuelle */
+      padding: 30px;
+      max-width: 1200px;
+      width: 100%;
+      animation: fadeIn 0.5s ease;
+    }
+
+    /* Animation pour le contenu */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Exemple de titre pour démontrer le contenu */
+    .content-title {
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      color: var(--primary-color);
+      border-bottom: 2px solid var(--border-light);
+      padding-bottom: 15px;
+    }
+
+    /* Exemple de contenu */
+    .history-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .history-card {
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      transition: var(--transition);
+    }
+
+    .history-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .active-button {
+  background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(110, 103, 255, 0.3);
+}
+  </style>
+</head>
+<body>
+  <header>
+    <a href="{% url 'dashboard_chef' %}" class="logo">
+      <img src="{% static 'images/logo-removebg-preview.png' %}" alt="FeedBackFlow Logo">
+      FeedBackFlow
+    </a>
+    <div class="header-right">
+      <div class="nav-buttons">
+    <div class="header-right">
+      <div class="nav-buttons">
+        <a href="{% url 'dashboard_chef' %}" onclick="activateButton(this)" class="nav-btn active-button">
+    Dashboard
+</a>
+
+        <a href="{% url 'login' %}" class="nav-btn " >
+          Déconnexion
+        </a>
+      </div>
+    </div>
+  </header>
+    <!-- Contenu du dashboard -->
+    <div id="dashboard-container">
+        <!-- Ici sera intégré votre dashboard Dash -->
+        <iframe src="http://127.0.0.1:8050/" width="100%" height="800px" frameborder="0"></iframe>
+    </div>
+</body>
+<script>
+function activateButton(button) {
+  // Retirer la classe active de tous les boutons
+  document.querySelectorAll('nav a').forEach(btn => {
+    btn.classList.remove('active-button');
+  });
+  
+  // Ajouter la classe active au bouton cliqué
+  button.classList.add('active-button');
+}
+</script>
+</html>
