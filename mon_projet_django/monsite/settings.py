@@ -163,3 +163,10 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'nassimarhannouch123@gmail.com'
 EMAIL_HOST_PASSWORD = 'tsbv dvcf typt hmbq'  # Le mot de passe d'application que tu viens de générer
 DEFAULT_FROM_EMAIL = 'nassimarhannouch123@gmail.com'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'elwarraqiihssane@gmail.com'  # Utilise ton adresse email
+EMAIL_HOST_PASSWORD = 'ixmd fxqe wunf diks'  # Mot de passe d'application généré dans Gmail

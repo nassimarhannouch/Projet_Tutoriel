@@ -8,7 +8,7 @@ from appcours import views  # Assurez-vous que c'est bien 'monapp.views' si votr
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('dashboard/custom_dashboard/', views.admin_dashboard, name='admin_dashboard'),
-    path('login/', views.login_view, name='login'),
+    path('', views.login_view, name='login'),
     path('register/', views.register_etudiant, name='register_etudiant'),
     path('etudiant/dashboard/', views.etudiant_dashboard, name='etudiant_dashboard'),
     path('chef_filiere/dashboard/', views.chef_filiere_dashboard, name='chef_filiere_dashboard'),
@@ -46,6 +46,15 @@ path('affectation/', views.affectation_chef_filiere, name='affectation_chef_fili
     path('retirer-chef/', views.retirer_chef, name='retirer_chef'),
     path('api/affectation-stats/', views.get_affectation_stats, name='affectation_stats'),
     path('modifier-chef/', views.modifier_chef, name='modifier_chef'),
+    path('Dashadmin/', views.dashboard_admin_view, name='Dashadmin'),
+    path('check-dash-status/', views.check_dash_status, name='check_dash_status'),
+    path('start-dash/', views.start_dash_view, name='start_dash'),
+    path('dashboard-chef/', views.dashboard_chef, name='dashboard_chef'),
+    path('affecter-chef/', views.affecter_chef, name='affecter_chef'),
+path('modifier-chef/', views.modifier_chef, name='modifier_chef'),
+
+
+
 
 
 

@@ -10,12 +10,60 @@ from django.template.loader import render_to_string
 from django.contrib.auth.tokens import default_token_generator
 from django.http import JsonResponse
 from .models import Filiere, Utilisateur
+from django.views.decorators.http import require_http_methods
 from django.db import transaction
 import joblib
 from langdetect import detect
 from django.core.paginator import Paginator
 from django_plotly_dash import DjangoDash
 from appcours.dashboard import create_student_dashboard
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import authenticate, login, logout, get_user_model
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.mail import send_mail
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_str
+from django.template.loader import render_to_string
+from django.contrib.auth.tokens import default_token_generator
+from django.http import JsonResponse
+import joblib
+from langdetect import detect
+from django.core.paginator import Paginator
+from django_plotly_dash import DjangoDash
+from appcours.dashboard import create_student_dashboard
+
+import requests
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from .models import Cours, Professeur, Feedback
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
+import json
+from django.http import JsonResponse
+from .models import Feedback, Utilisateur, Role
+from .forms import FeedbackForm
+from .utils import  generate_recommendations_from_theme
+
+from .models import Feedback, Utilisateur, Role
+from .forms import FeedbackForm
+from .utils import generate_recommendations_from_theme
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.core.mail import send_mail
+from django.conf import settings
+from appcours.forms import FeedbackForm
+from appcours.models import Utilisateur, Role
+from appcours.utils import  predict_theme, generate_recommendations_from_theme
+from django.utils import timezone
 
 import requests
 from django.shortcuts import render, redirect, get_object_or_404
@@ -87,11 +135,11 @@ def login_view(request):
             login(request, user)
             # Redirection selon le rôle
             if user.role == 'etudiant':
-                return redirect('etudiant_dashboard')
+                return redirect('dashboard')
             elif user.role == 'chef_filiere':
-                return redirect('chef_filiere_dashboard')
+                return redirect('dashboard_chef')
             elif user.role == 'administrateur':
-                return redirect('admin_dashboard')
+                return redirect('Dashadmin')
             else:
                 messages.error(request, "Rôle inconnu.")
         else:
@@ -247,6 +295,8 @@ def etudiant_dashboard(request):
     }
     
     return render(request, 'monapp/etudiant_dashboard.html', context)
+
+
 def detect_sentiment(commentaire):
     """
     Appelle l'API Flask pour détecter si le commentaire est négatif (serieux = 1)
@@ -267,19 +317,26 @@ def detect_sentiment(commentaire):
 
 @login_required
 def soumettre_feedback(request):
+    """
+    Fonction unifiée pour soumettre un feedback étudiant
+    Combine la validation, la prédiction de thème, les recommandations et les notifications
+    """
     utilisateur = request.user
     
+    # Vérification du rôle utilisateur
     if utilisateur.role != 'etudiant':
         messages.error(request, "Vous n'avez pas accès à cette page.")
         return redirect('home')
-
+    
+    # Vérification de l'association à une filière
     if not utilisateur.filiere:
         messages.warning(request, "Vous n'êtes associé à aucune filière.")
         return redirect('profil_etudiant')
-
+    
     cours_disponibles = Cours.objects.filter(filiere=utilisateur.filiere)
-
+    
     if request.method == 'POST':
+        # Récupération des données du formulaire
         cours_id = request.POST.get('cours')
         professeur_id = request.POST.get('professeur')
         commentaire = request.POST.get('commentaire', '').strip()
@@ -288,14 +345,16 @@ def soumettre_feedback(request):
         note = request.POST.get('note')
         anonyme = request.POST.get('anonyme') == '1'
         partager = request.POST.get('partager') == '1'
-
-        if not cours_id or not note:
+        
+        # Validation des champs requis
+        if not cours_id or not note or not commentaire:
             messages.error(request, "Veuillez remplir tous les champs requis.")
             return render(request, 'monapp/soumettre_feedback.html', {
                 'cours_disponibles': cours_disponibles,
                 'utilisateur': utilisateur
             })
-
+        
+        # Validation de la note
         try:
             note = int(note)
             if note < 1 or note > 5:
@@ -306,95 +365,163 @@ def soumettre_feedback(request):
                 'cours_disponibles': cours_disponibles,
                 'utilisateur': utilisateur
             })
-
+        
+        # Récupération des objets cours et professeur
         cours = get_object_or_404(Cours, pk=cours_id, filiere=utilisateur.filiere)
         professeur = get_object_or_404(Professeur, pk=professeur_id) if professeur_id else None
-
+        
+        # Vérification que le professeur enseigne ce cours
         if professeur and not professeur.cours.filter(id=cours_id).exists():
             messages.error(request, "Ce professeur n'enseigne pas ce cours.")
             return render(request, 'monapp/soumettre_feedback.html', {
                 'cours_disponibles': cours_disponibles,
                 'utilisateur': utilisateur
             })
+        
+        try:
+            # Détection du sentiment
+            sentiment = detect_sentiment(commentaire)
+            
+            # Si le feedback est négatif, redirection vers validation chatbot
+            if sentiment == 'négatif':
+                request.session['pending_feedback'] = {
+                    'cours_id': cours_id,
+                    'professeur_id': professeur_id,
+                    'commentaire': commentaire,
+                    'suggestions': suggestions,
+                    'date_cours': date_cours,
+                    'note': note,
+                    'anonyme': anonyme,
+                    'partager': partager,
+                    'sentiment': sentiment
+                }
+                return redirect('chat_validation')
+            
+            # Prédiction du thème
+            theme = predict_theme(commentaire)
+            
+            # Génération des recommandations
+            recommendations = generate_recommendations_from_theme(theme)
+            recommendations_text = "; ".join(recommendations)
+            
+            # Création du feedback
+            feedback = Feedback.objects.create(
+                cours=cours,
+                professeur=professeur,
+                etudiant=None if anonyme else utilisateur,
+                note=note,
+                commentaire=commentaire,
+                suggestions=suggestions,
+                date_cours=date_cours,
+                sentiment=sentiment,
+                anonyme=anonyme,
+                partager=partager,
+                theme_pred=theme,
+                recommendations=recommendations_text
+            )
+            
+            print(f"[DEBUG] Feedback sauvegardé - ID: {feedback.id}, Thème: {theme}")
+            
+            # Notification au chef de filière
+            chef_filiere = Utilisateur.objects.filter(
+                role=Role.CHEF_FILIERE,
+                filiere=cours.filiere
+            ).first()
+            
+            if chef_filiere:
+                print(f"[DEBUG] Chef de filière trouvé : {chef_filiere.email}")
+                
+                recommandations_texte = "\n".join(f"- {rec}" for rec in recommendations)
+                sujet_chef = f"Nouveau feedback pour le cours {cours.nom}"
+                message_chef = f"""
+Un feedback a été soumis pour le cours {cours.nom}.
 
-        sentiment = detect_sentiment(commentaire)
+Étudiant : {utilisateur.get_full_name() or utilisateur.username if not anonyme else 'Anonyme'}
+Date : {feedback.date_creation.strftime('%d/%m/%Y %H:%M') if hasattr(feedback, 'date_creation') else timezone.now().strftime('%d/%m/%Y %H:%M')}
+Note : {note}/5
+Sentiment : {sentiment}
 
-        # Feedback négatif : on redirige vers validation chatbot
-        if sentiment == 'négatif':
-            request.session['pending_feedback'] = {
-                'cours_id': cours_id,
-                'professeur_id': professeur_id,
-                'commentaire': commentaire,
-                'suggestions': suggestions,
-                'date_cours': date_cours,
-                'note': note,
-                'anonyme': anonyme,
-                'partager': partager,
-                'sentiment': sentiment
-            }
-            return redirect('chat_validation')
+Contenu du feedback :
+{commentaire}
 
-        # Sinon on sauvegarde directement le feedback
-        Feedback.objects.create(
-            cours=cours,
-            professeur=professeur,
-            etudiant=None if anonyme else utilisateur,
-            note=note,
-            commentaire=commentaire,
-            suggestions=suggestions,
-            date_cours=date_cours,
-            sentiment=sentiment,
-            anonyme=anonyme,
-            partager=partager
-        )
+Suggestions :
+{suggestions or 'Aucune suggestion fournie'}
 
-        messages.success(request, "Votre feedback a été soumis avec succès.")
-        return redirect('merci_feedback')
+---
 
+🎯 Thème identifié : {theme}
+
+🎯 Recommandations proposées :
+{recommandations_texte}
+
+Merci de prendre les mesures appropriées.
+                """
+                
+                try:
+                    send_mail(
+                        sujet_chef,
+                        message_chef,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [chef_filiere.email],
+                        fail_silently=False
+                    )
+                    print("[DEBUG] Email envoyé au chef de filière")
+                except Exception as e:
+                    print(f"[ERROR] Email chef de filière : {e}")
+                    messages.warning(request, "Feedback enregistré mais erreur lors de l'envoi de la notification au chef de filière.")
+            else:
+                print("[ERROR] Aucun chef de filière trouvé.")
+                messages.warning(request, "Feedback enregistré mais aucun chef de filière trouvé pour cette filière.")
+            
+            # Email de remerciement à l'étudiant (si pas anonyme)
+            if not anonyme and utilisateur.email:
+                try:
+                    sujet_etudiant = "Merci pour votre feedback"
+                    message_etudiant = f"""
+Bonjour {utilisateur.get_full_name() or utilisateur.username},
+
+Merci pour votre retour concernant le cours {cours.nom}.
+
+Votre feedback a été bien reçu et sera transmis aux responsables concernés.
+
+Afin d'améliorer davantage la qualité de nos enseignements, nous vous invitons à compléter ce formulaire complémentaire :
+https://docs.google.com/forms/d/e/1FAIpQLSefB-p6nEjUzE5BG37mGdSjkjaTLpVY7gqn4AG_zmWp6O1aTA/viewform?usp=sf_link
+
+Merci beaucoup pour votre contribution !
+
+L'équipe pédagogique
+                    """
+                    send_mail(
+                        sujet_etudiant,
+                        message_etudiant,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [utilisateur.email],
+                        fail_silently=False
+                    )
+                    print("[DEBUG] Email de remerciement envoyé à l'étudiant")
+                except Exception as e:
+                    print(f"[ERROR] Email étudiant : {e}")
+                    messages.warning(request, "Feedback enregistré mais erreur lors de l'envoi du mail de remerciement.")
+            
+            messages.success(request, "Votre feedback a été soumis avec succès.")
+            return redirect('merci_feedback')
+            
+        except Exception as e:
+            print(f"[ERROR] Traitement du feedback : {e}")
+            messages.error(request, "Une erreur est survenue lors du traitement de votre feedback.")
+            return render(request, 'monapp/soumettre_feedback.html', {
+                'cours_disponibles': cours_disponibles,
+                'utilisateur': utilisateur
+            })
+    
     # GET : afficher le formulaire
     return render(request, 'monapp/soumettre_feedback.html', {
         'cours_disponibles': cours_disponibles,
         'utilisateur': utilisateur
     })
-@login_required
-def chat_validation(request):
-    feedback_data = request.session.get('pending_feedback')
-    if not feedback_data:
-        return redirect('soumettre_feedback')
 
-    return render(request, 'monapp/chat.html', {
-        'commentaire': feedback_data['commentaire']
-    })
 
-@login_required
-def valider_feedback_serieux(request):
-    utilisateur = request.user
-    data = request.session.pop('pending_feedback', None)
-    if not data:
-        return redirect('monapp/soumettre_feedback')
-
-    cours = get_object_or_404(Cours, pk=data['cours_id'])
-    professeur = get_object_or_404(Professeur, pk=data['professeur_id']) if data['professeur_id'] else None
-
-    Feedback.objects.create(
-        cours=cours,
-        professeur=professeur,
-        etudiant=None if data['anonyme'] else utilisateur,
-        note=data['note'],
-        commentaire=data['commentaire'],
-        suggestions=data['suggestions'],
-        date_cours=data['date_cours'],
-        sentiment=data['sentiment'],
-        anonyme=data['anonyme'],
-        partager=data['partager']
-    )
-
-    messages.success(request, "Votre feedback a été soumis après vérification.")
-    return redirect('monapp/merci_feedback') 
-
-from django.views.decorators.csrf import csrf_exempt
-import json
-from django.http import JsonResponse
+# Modifications dans views.py
 
 @csrf_exempt
 @login_required
@@ -414,21 +541,308 @@ def enregistrer_feedback_serieux(request):
         cours = get_object_or_404(Cours, pk=feedback_data['cours_id'])
         professeur = get_object_or_404(Professeur, pk=feedback_data['professeur_id']) if feedback_data['professeur_id'] else None
 
-        Feedback.objects.create(
+        try:
+            # Prédiction du thème pour feedback négatif sérieux
+            theme = predict_theme(feedback_data['commentaire'])
+            
+            # Génération des recommandations basées sur le thème et sentiment
+            recommendations = generate_recommendations_from_theme(theme, feedback_data['sentiment'])
+            recommendations_text = "; ".join(recommendations)
+            
+            print(f"[DEBUG] Feedback négatif sérieux - Thème: {theme}, Recommandations: {recommendations}")
+
+            # Création du feedback avec thème et recommandations
+            feedback = Feedback.objects.create(
+                cours=cours,
+                professeur=professeur,
+                etudiant=None if feedback_data['anonyme'] else utilisateur,
+                note=feedback_data['note'],
+                commentaire=feedback_data['commentaire'],
+                suggestions=feedback_data['suggestions'],
+                date_cours=feedback_data['date_cours'],
+                sentiment=feedback_data['sentiment'],
+                anonyme=feedback_data['anonyme'],
+                partager=feedback_data['partager'],
+                theme_pred=theme,  # Enregistrement du thème prédit
+                recommendations=recommendations_text  # Enregistrement des recommandations
+            )
+
+            print(f"[DEBUG] Feedback sauvegardé avec ID: {feedback.id}")
+
+            # Notification au professeur concerné par le cours
+            if professeur and professeur.email:
+                print(f"[DEBUG] Professeur trouvé : {professeur.email}")
+                
+                recommandations_texte = "\n".join(f"- {rec}" for rec in recommendations)
+                sujet_prof = f"📋 Feedback sur votre cours - {cours.nom}"
+                message_prof = f"""
+Bonjour {professeur.nom} {professeur.prenom},
+
+Vous avez reçu un nouveau feedback concernant votre cours "{cours.nom}".
+
+Étudiant : {utilisateur.get_full_name() or utilisateur.username if not feedback_data['anonyme'] else 'Anonyme'}
+Date du cours : {feedback_data['date_cours']}
+Date du feedback : {timezone.now().strftime('%d/%m/%Y %H:%M')}
+Note attribuée : {feedback_data['note']}/5
+Sentiment : {feedback_data['sentiment']}
+
+Commentaire de l'étudiant :
+"{feedback_data['commentaire']}"
+
+Suggestions de l'étudiant :
+{feedback_data['suggestions'] or 'Aucune suggestion fournie'}
+
+---
+
+🎯 THÈME IDENTIFIÉ : {theme.upper()}
+
+💡 RECOMMANDATIONS POUR AMÉLIORATION :
+{recommandations_texte}
+
+---
+
+Ce feedback vous est transmis pour vous aider à améliorer votre enseignement.
+N'hésitez pas à prendre en compte ces retours constructifs.
+
+Cordialement,
+Le système de feedback pédagogique
+                """
+                
+                try:
+                    send_mail(
+                        sujet_prof,
+                        message_prof,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [professeur.email],
+                        fail_silently=False
+                    )
+                    print("[DEBUG] Email de feedback envoyé au professeur")
+                except Exception as e:
+                    print(f"[ERROR] Email professeur : {e}")
+            else:
+                print("[ERROR] Aucun professeur trouvé ou email manquant.")
+
+            return JsonResponse({
+                'status': 'saved',
+                'theme': theme,
+                'recommendations': recommendations,
+                'feedback_id': feedback.id
+            })
+            
+        except Exception as e:
+            print(f"[ERROR] Erreur lors de l'enregistrement du feedback sérieux : {e}")
+            return JsonResponse({'status': 'error', 'message': str(e)})
+
+    return JsonResponse({'status': 'invalid_method'})
+
+
+@login_required
+def valider_feedback_serieux(request):
+    utilisateur = request.user
+    data = request.session.pop('pending_feedback', None)
+    if not data:
+        return redirect('soumettre_feedback')
+
+    cours = get_object_or_404(Cours, pk=data['cours_id'])
+    professeur = get_object_or_404(Professeur, pk=data['professeur_id']) if data['professeur_id'] else None
+
+    try:
+        # Prédiction du thème pour feedback négatif validé
+        theme = predict_theme(data['commentaire'])
+        
+        # Génération des recommandations
+        recommendations = generate_recommendations_from_theme(theme, data['sentiment'])
+        recommendations_text = "; ".join(recommendations)
+        
+        print(f"[DEBUG] Validation feedback sérieux - Thème: {theme}")
+
+        # Création du feedback avec thème et recommandations
+        feedback = Feedback.objects.create(
             cours=cours,
             professeur=professeur,
-            etudiant=None if feedback_data['anonyme'] else utilisateur,
-            note=feedback_data['note'],
-            commentaire=feedback_data['commentaire'],
-            suggestions=feedback_data['suggestions'],
-            date_cours=feedback_data['date_cours'],
-            sentiment=feedback_data['sentiment'],
-            anonyme=feedback_data['anonyme'],
-            partager=feedback_data['partager']
+            etudiant=None if data['anonyme'] else utilisateur,
+            note=data['note'],
+            commentaire=data['commentaire'],
+            suggestions=data['suggestions'],
+            date_cours=data['date_cours'],
+            sentiment=data['sentiment'],
+            anonyme=data['anonyme'],
+            partager=data['partager'],
+            theme_pred=theme,  # Enregistrement du thème prédit
+            recommendations=recommendations_text  # Enregistrement des recommandations
         )
 
-        return JsonResponse({'status': 'saved'})
+        print(f"[DEBUG] Feedback validé sauvegardé avec ID: {feedback.id}")
+
+        # Notification au professeur concerné
+        if professeur and professeur.email:
+            recommandations_texte = "\n".join(f"- {rec}" for rec in recommendations)
+            sujet_prof = f"📋 Feedback validé sur votre cours - {cours.nom}"
+            message_prof = f"""
+Bonjour {professeur.nom} {professeur.prenom},
+
+Un feedback concernant votre cours "{cours.nom}" a été validé après vérification.
+
+Étudiant : {utilisateur.get_full_name() or utilisateur.username if not data['anonyme'] else 'Anonyme'}
+Date du cours : {data['date_cours']}
+Date du feedback : {timezone.now().strftime('%d/%m/%Y %H:%M')}
+Note attribuée : {data['note']}/5
+Sentiment : {data['sentiment']} (VALIDÉ)
+
+Commentaire de l'étudiant :
+"{data['commentaire']}"
+
+Suggestions de l'étudiant :
+{data['suggestions'] or 'Aucune suggestion fournie'}
+
+---
+
+🎯 THÈME IDENTIFIÉ : {theme.upper()}
+
+💡 RECOMMANDATIONS POUR AMÉLIORATION :
+{recommandations_texte}
+
+---
+
+Ce feedback a été validé après interaction avec notre système de vérification.
+Il reflète une préoccupation légitime de l'étudiant.
+
+Cordialement,
+Le système de feedback pédagogique
+            """
+            
+            try:
+                send_mail(
+                    sujet_prof,
+                    message_prof,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [professeur.email],
+                    fail_silently=False
+                )
+                print("[DEBUG] Email de validation envoyé au professeur")
+            except Exception as e:
+                print(f"[ERROR] Email professeur : {e}")
+
+        messages.success(request, f"Votre feedback a été soumis après vérification. Thème identifié: {theme}")
+        return redirect('merci_feedback')
+        
+    except Exception as e:
+        print(f"[ERROR] Erreur lors de la validation : {e}")
+        messages.error(request, "Erreur lors de la validation du feedback.")
+        return redirect('soumettre_feedback')
+
+
+# Modification dans la fonction chat_validation pour inclure thème et recommandations
+@login_required
+def chat_validation(request):
+    """
+    Gestion de la validation par chatbot pour les feedbacks négatifs
+    """
+    feedback_data = request.session.get('pending_feedback')
+    if not feedback_data:
+        messages.warning(request, "Aucun feedback en attente de validation.")
+        return redirect('soumettre_feedback')
     
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'confirm':
+            try:
+                cours = get_object_or_404(Cours, pk=feedback_data['cours_id'])
+                professeur = get_object_or_404(Professeur, pk=feedback_data['professeur_id']) if feedback_data['professeur_id'] else None
+                
+                # Prédiction du thème et recommandations
+                theme = predict_theme(feedback_data['commentaire'])
+                recommendations = generate_recommendations_from_theme(theme, feedback_data['sentiment'])
+                
+                print(f"[DEBUG] Confirmation chat - Thème: {theme}")
+
+                feedback = Feedback.objects.create(
+                    cours=cours,
+                    professeur=professeur,
+                    etudiant=None if feedback_data['anonyme'] else request.user,
+                    note=feedback_data['note'],
+                    commentaire=feedback_data['commentaire'],
+                    suggestions=feedback_data['suggestions'],
+                    date_cours=feedback_data['date_cours'],
+                    sentiment=feedback_data['sentiment'],
+                    anonyme=feedback_data['anonyme'],
+                    partager=feedback_data['partager'],
+                    theme_pred=theme,  # Enregistrement du thème
+                    recommendations="; ".join(recommendations)  # Enregistrement des recommandations
+                )
+                
+                # Notification au professeur concerné
+                if professeur and professeur.email:
+                    recommandations_texte = "\n".join(f"- {rec}" for rec in recommendations)
+                    sujet_prof = f"📋 Feedback confirmé sur votre cours - {cours.nom}"
+                    message_prof = f"""
+Bonjour {professeur.nom} {professeur.prenom},
+
+Un feedback concernant votre cours "{cours.nom}" a été confirmé après validation interactive.
+
+Étudiant : {request.user.get_full_name() or request.user.username if not feedback_data['anonyme'] else 'Anonyme'}
+Date du cours : {feedback_data['date_cours']}
+Date du feedback : {timezone.now().strftime('%d/%m/%Y %H:%M')}
+Note attribuée : {feedback_data['note']}/5
+Sentiment : {feedback_data['sentiment']} (CONFIRMÉ)
+
+Commentaire de l'étudiant :
+"{feedback_data['commentaire']}"
+
+Suggestions de l'étudiant :
+{feedback_data['suggestions'] or 'Aucune suggestion fournie'}
+
+---
+
+🎯 THÈME IDENTIFIÉ : {theme.upper()}
+
+💡 RECOMMANDATIONS POUR AMÉLIORATION :
+{recommandations_texte}
+
+---
+
+Ce feedback a été confirmé après un processus de validation interactive.
+
+Cordialement,
+Le système de feedback pédagogique
+                    """
+                    
+                    try:
+                        send_mail(
+                            sujet_prof,
+                            message_prof,
+                            settings.DEFAULT_FROM_EMAIL,
+                            [professeur.email],
+                            fail_silently=False
+                        )
+                        print("[DEBUG] Email de confirmation envoyé au professeur")
+                    except Exception as e:
+                        print(f"[ERROR] Email professeur : {e}")
+                
+                # Nettoyage de la session
+                del request.session['pending_feedback']
+                
+                messages.success(request, f"Votre feedback a été soumis avec succès après validation. Thème identifié: {theme}")
+                return redirect('merci_feedback')
+                
+            except Exception as e:
+                print(f"[ERROR] Validation feedback : {e}")
+                messages.error(request, "Erreur lors de la validation du feedback.")
+        
+        elif action == 'cancel':
+            del request.session['pending_feedback']
+            messages.info(request, "Feedback annulé.")
+            return redirect('soumettre_feedback')
+    
+    return render(request, 'monapp/chat.html', {
+        'commentaire': feedback_data['commentaire'],
+        'cours_id': feedback_data['cours_id']
+    })
+
+
+
+
 @login_required
 def get_professeurs_by_cours(request, cours_id):
     try:
@@ -895,43 +1309,35 @@ def api_evaluation_modes(request):
 
 @login_required
 def affectation_chef_filiere(request):
-    """
-    Vue pour afficher la page d'affectation des chefs de filière
-    """
-    # Vérifier que l'utilisateur est administrateur
     if request.user.role != 'administrateur':
         messages.error(request, 'Accès non autorisé.')
         return redirect('dashboard')
     
-    # Récupérer toutes les filières
     filieres = Filiere.objects.all().prefetch_related('utilisateurs', 'cours')
-    
-    # Séparer les filières avec et sans chef
     filieres_sans_chef = []
     filieres_avec_chef = []
-    
+
     for filiere in filieres:
         if filiere.chef:
             filieres_avec_chef.append(filiere)
         else:
             filieres_sans_chef.append(filiere)
-    
-    # Récupérer les utilisateurs disponibles pour être chef de filière
-    # (utilisateurs sans filière assignée ou avec role différent de chef_filiere)
-    utilisateurs_disponibles = Utilisateur.objects.filter(
-        role__in=['etudiant', 'administrateur']  # On peut promouvoir des étudiants ou administrateurs
-    ).exclude(
-        role='chef_filiere'  # Exclure ceux qui sont déjà chef de filière
-    )
-    
+
+    # Récupérer les chefs de filière existants
+    chefs_filiere = Utilisateur.objects.filter(role='chef_filiere')
+
+    # Récupérer tous les professeurs
+    professeurs = Professeur.objects.all()
+
     context = {
         'filieres_sans_chef': filieres_sans_chef,
         'filieres_avec_chef': filieres_avec_chef,
-        'utilisateurs_disponibles': utilisateurs_disponibles,
+        'chefs_filiere': chefs_filiere,
+        'professeurs': professeurs,
         'total_filieres': filieres.count(),
     }
-    
     return render(request, 'monapp/admin_dashboard.html', context)
+
 
 @login_required
 def affecter_chef(request):
@@ -1061,7 +1467,11 @@ def get_affectation_stats(request):
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 import re
 @login_required
 def modifier_chef(request):
@@ -1208,3 +1618,278 @@ def modifier_chef(request):
         messages.error(request, f"Erreur lors de la modification du chef de filière: {str(e)}")
     
     return redirect('monapp/admin_dashboard')
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+import subprocess
+import threading
+import time
+import requests
+
+# Variable globale pour stocker le processus Dash
+dash_process = None
+
+def start_dash_app():
+    """Démarre l'application Dash en arrière-plan"""
+    global dash_process
+    try:
+        # Chemin vers votre fichier dashboard_admin.py
+        dash_process = subprocess.Popen([
+            'python', 'Dashadmin.py'
+        ], cwd='C:/Users/Lenovo/Downloads/Tutoriel/mon_projet_django/appcours/Dashadmin.py')  # Remplacez par le chemin réel
+        time.sleep(3)  # Attendre que l'app démarre
+    except Exception as e:
+        print(f"Erreur lors du démarrage de Dash: {e}")
+
+@login_required
+def dashboard_admin_view(request):
+    """Vue pour afficher le dashboard administrateur"""
+    global dash_process
+    
+    # Vérifier si l'utilisateur est admin
+    if not request.user.is_staff:
+        return render(request, 'error.html', {'message': 'Accès non autorisé'})
+    
+    # Démarrer l'app Dash si elle n'est pas déjà en cours
+    if dash_process is None:
+        thread = threading.Thread(target=start_dash_app)
+        thread.daemon = True
+        thread.start()
+    
+    # URL de l'application Dash
+    dash_url = "http://127.0.0.1:8050"
+    
+    context = {
+        'dash_url': dash_url,
+        'user': request.user
+    }
+    
+    return render(request, 'monapp/Dashadmin.html', context)
+
+@login_required
+def check_dash_status(request):
+    """Vérifie si l'application Dash est en cours d'exécution"""
+    try:
+        response = requests.get("http://127.0.0.1:8050", timeout=5)
+        if response.status_code == 200:
+            return JsonResponse({'status': 'running'})
+    except:
+        pass
+    
+    return JsonResponse({'status': 'not_running'})
+
+from django.http import HttpResponse
+def start_dash_view(request):
+    # Exemple simple
+    return HttpResponse("Dash démarré !")
+
+def dashboard_chef(request):
+    """Vue pour afficher le dashboard du chef de filière"""
+    return render(request, 'monapp/dashboard_chef.html')
+
+@login_required
+@require_http_methods(["POST"])
+def modifier_chef(request):
+    """
+    View to modify the chef (head) of a filiere (department/program)
+    """
+    try:
+        filiere_id = request.POST.get('filiere_id')
+        
+        if not filiere_id:
+            messages.error(request, 'ID de filière manquant.')
+            return redirect('affectation')
+        
+        # Get the filiere object
+        filiere = get_object_or_404(Filiere, id=filiere_id)
+        
+        # Check if creating a new chef
+        if request.POST.get('new_chef_first_name'):
+            return create_new_chef_and_assign(request, filiere)
+        
+        # Check if assigning existing user
+        utilisateur_id = request.POST.get('utilisateur_id')
+        if utilisateur_id:
+            return assign_existing_chef(request, filiere, utilisateur_id)
+        
+        messages.error(request, 'Aucune action valide sélectionnée.')
+        return redirect('affectation')
+        
+    except Exception as e:
+        messages.error(request, f'Erreur lors de la modification: {str(e)}')
+        return redirect('affectation')
+
+
+def create_new_chef_and_assign(request, filiere):
+    """
+    Create a new user and assign as chef de filiere
+    """
+    try:
+        # Get form data
+        first_name = request.POST.get('new_chef_first_name', '').strip()
+        last_name = request.POST.get('new_chef_last_name', '').strip()
+        username = request.POST.get('new_chef_username', '').strip()
+        email = request.POST.get('new_chef_email', '').strip()
+        password = request.POST.get('new_chef_password', '')
+        confirm_password = request.POST.get('new_chef_confirm_password', '')
+        
+        # Validation
+        if not all([first_name, last_name, username, email, password]):
+            messages.error(request, 'Tous les champs sont obligatoires pour créer un nouveau chef.')
+            return redirect('affectation')
+        
+        if password != confirm_password:
+            messages.error(request, 'Les mots de passe ne correspondent pas.')
+            return redirect('affectation')
+        
+        # Check if username already exists
+        if Utilisateur.objects.filter(username=username).exists():
+            messages.error(request, f'Le nom d\'utilisateur "{username}" existe déjà.')
+            return redirect('affectation')
+        
+        # Check if email already exists
+        if Utilisateur.objects.filter(email=email).exists():
+            messages.error(request, f'L\'email "{email}" est déjà utilisé.')
+            return redirect('affectation')
+        
+        # Create new user using your custom Utilisateur model
+        new_user = Utilisateur.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            role='chef_filiere',  # Set role directly
+            filiere=filiere  # Assign to filiere
+        )
+        
+        # Use the custom chef setter
+        filiere.chef = new_user
+        
+        messages.success(request, f'Nouveau chef "{first_name} {last_name}" créé et assigné à la filière "{filiere.nom}".')
+        return redirect('affectation')
+        
+    except Exception as e:
+        messages.error(request, f'Erreur lors de la création du nouveau chef: {str(e)}')
+        return redirect('affectation')
+
+
+def assign_existing_chef(request, filiere, utilisateur_id):
+    """
+    Assign an existing user as chef de filiere
+    """
+    try:
+        chef = None
+        
+        # Parse the utilisateur_id (could be "user-X" or "prof-X" format)
+        if utilisateur_id.startswith('user-'):
+            # It's a Utilisateur model
+            user_id = utilisateur_id.replace('user-', '')
+            chef = get_object_or_404(Utilisateur, id=user_id)
+            
+        elif utilisateur_id.startswith('prof-'):
+            # It's a Professeur model - create a new Utilisateur from Professeur
+            prof_id = utilisateur_id.replace('prof-', '')
+            professeur = get_object_or_404(Professeur, id=prof_id)
+            
+            # Check if a Utilisateur with this email already exists
+            existing_user = Utilisateur.objects.filter(email=professeur.email).first()
+            if existing_user:
+                chef = existing_user
+            else:
+                # Create new Utilisateur from Professeur data
+                # Generate a username from the professor's name
+                base_username = f"{professeur.prenom.lower()}.{professeur.nom.lower()}"
+                username = base_username
+                counter = 1
+                while Utilisateur.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                
+                chef = Utilisateur.objects.create_user(
+                    username=username,
+                    email=professeur.email,
+                    password='temppassword123',  # You might want to generate a random password
+                    first_name=professeur.prenom,
+                    last_name=professeur.nom,
+                    telephone=professeur.telephone,
+                    role='chef_filiere',
+                    filiere=filiere
+                )
+                
+                messages.info(request, f'Compte utilisateur créé pour le professeur {professeur.prenom} {professeur.nom}. Mot de passe temporaire: temppassword123')
+            
+        else:
+            # Regular user ID (without prefix)
+            chef = get_object_or_404(Utilisateur, id=utilisateur_id)
+        
+        if not chef:
+            messages.error(request, 'Utilisateur non trouvé.')
+            return redirect('affectation')
+        
+        # Store previous chef info for message
+        previous_chef = filiere.chef
+        
+        # Use the custom chef setter which handles role changes
+        filiere.chef = chef
+        
+        if previous_chef:
+            messages.success(
+                request, 
+                f'Chef de filière modifié: {previous_chef.first_name} {previous_chef.last_name} → {chef.first_name} {chef.last_name} pour la filière "{filiere.nom}".'
+            )
+        else:
+            messages.success(
+                request, 
+                f'Chef de filière assigné: {chef.first_name} {chef.last_name} pour la filière "{filiere.nom}".'
+            )
+        
+        return redirect('affectation')
+        
+    except Exception as e:
+        messages.error(request, f'Erreur lors de l\'assignation: {str(e)}')
+        return redirect('affectation')
+
+
+
+@login_required
+def affectation(request):
+    """
+    View for the affectation page
+    """
+    # Get filières without chef
+    filieres_sans_chef = []
+    for filiere in Filiere.objects.all():
+        if filiere.chef is None:  # Using the property
+            filieres_sans_chef.append(filiere)
+    
+    # Get filières with chef
+    filieres_avec_chef = []
+    for filiere in Filiere.objects.all():
+        if filiere.chef is not None:  # Using the property
+            filieres_avec_chef.append(filiere)
+    
+    # Get available users for chef assignment
+    # Users who are not already chefs of other filières
+    chefs_filiere = Utilisateur.objects.filter(role='chef_filiere')
+    
+    # Get users who could become chefs (excluding current chefs of other filières)
+    utilisateurs_disponibles = Utilisateur.objects.filter(
+        role__in=['etudiant', 'chef_filiere']
+    ).exclude(
+        id__in=[f.chef.id for f in filieres_avec_chef if f.chef]
+    )
+    
+    # Get all professeurs
+    professeurs = Professeur.objects.all()
+    
+    context = {
+        'filieres_sans_chef': filieres_sans_chef,
+        'filieres_avec_chef': filieres_avec_chef,
+        'utilisateurs_disponibles': utilisateurs_disponibles,
+        'chefs_filiere': chefs_filiere,
+        'professeurs': professeurs,
+    }
+    
+    return render(request, 'your_template_name.html', context)  # Replace with your actual template name

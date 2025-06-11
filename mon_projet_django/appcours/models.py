@@ -1,6 +1,13 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+class Role(models.TextChoices):
+    ETUDIANT = 'ETUDIANT', 'Étudiant'
+    CHEF_FILIERE = 'CHEF_FILIERE', 'Chef de filière'
+    ADMIN = 'ADMIN', 'Administrateur'
+    PROF = 'PROF', 'Professeur'
+# Modèle pour les utilisateurs
+
 # Modèle pour les utilisateurs
 class Utilisateur(AbstractUser):
     email = models.EmailField(unique=True)
@@ -23,15 +30,28 @@ class Utilisateur(AbstractUser):
 class Filiere(models.Model):
     nom = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    
+
     def __str__(self):
         return self.nom
-    
+
     @property
     def chef(self):
         """Retourne le chef de filière associé à cette filière."""
-        chef = self.utilisateurs.filter(role='chef_filiere').first()
-        return chef
+        return self.utilisateurs.filter(role='chef_filiere').first()
+
+    @chef.setter
+    def chef(self, utilisateur):
+        """Définit le chef de cette filière."""
+        # Retirer l'ancien chef
+        anciens_chefs = self.utilisateurs.filter(role='chef_filiere')
+        for ancien in anciens_chefs:
+            ancien.role = 'etudiant'
+            ancien.save()
+        
+        # Définir le nouvel utilisateur comme chef
+        utilisateur.role = 'chef_filiere'
+        utilisateur.filiere = self
+        utilisateur.save()
     
     @property
     def nombre_etudiants(self):
@@ -112,6 +132,8 @@ class Feedback(models.Model):
     ])
     anonyme = models.BooleanField(default=False)
     partager = models.BooleanField(default=False)
+    theme_pred = models.CharField(max_length=100, blank=True, null=True)  # thème prédit
+    recommendations = models.TextField(blank=True, null=True)
     
     class Meta:
         verbose_name = "Feedback"

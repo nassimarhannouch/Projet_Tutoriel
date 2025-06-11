@@ -2,13 +2,60 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FeedBackFlow - Affectation Chef de Filière</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Administrateur</title>
     <style>
-    :root {
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .dashboard-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+        
+        .dashboard-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #666;
+            font-size: 18px;
+        }
+        
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: linear-gradient(135deg, #C8A8E9 0%, #E3AADD 100%);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .back-button:hover {
+            transform: translateY(-2px);
+            text-decoration: none;
+            color: white;
+        }
+        :root {
       --primary-color: #6e67ff;
       --secondary-color: #fc67fa;
       --bg-color: #ffffff;
@@ -709,10 +756,10 @@
   box-shadow: 0 4px 15px rgba(110, 103, 255, 0.3);
 }
 
-  </style>
+    </style>
 </head>
 <body>
-  <header>
+    <header>
   <a href="{% url 'dashboard' %}" class="logo">
     <img src="{% static 'images/logo-removebg-preview.png' %}" alt="FeedBackFlow Logo">
     FeedBackFlow
@@ -731,338 +778,51 @@
     </div>
   </div>
 </header>
-
-
-  <div class="content-wrapper">
-    <div class="content">
-
-      
-
-      <!-- Messages de succès -->
-      {% if messages %}
-        {% for message in messages %}
-          <div class="success-message">
-            <i class="fas fa-check-circle"></i>
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-
-      <!-- Section des filières sans chef -->
-      {% if filieres_sans_chef %}
-        <div class="section-title">
-          <i class="fas fa-exclamation-triangle"></i>
-          Filières nécessitant un Chef de Filière
-        </div>
-
-        <div class="filieres-grid">
-          {% for filiere in filieres_sans_chef %}
-            <div class="filiere-card">
-              <div class="filiere-header">
-                <div class="filiere-name">{{ filiere.nom }}</div>
-                <div class="status-badge">
-                  <i class="fas fa-user-slash"></i>
-                  Sans Chef
-                </div>
-              </div>
-              
-              <div class="filiere-info">
-                <p>
-                  <i class="fas fa-users"></i>
-                  <strong>{{ filiere.nombre_etudiants }}</strong> étudiant{{ filiere.nombre_etudiants|pluralize }}
-                </p>
-                <p>
-                  <i class="fas fa-book"></i>
-                  <strong>{{ filiere.cours.count }}</strong> cours
-                </p>
-                {% if filiere.description %}
-                  <p>
-                    <i class="fas fa-info-circle"></i>
-                    {{ filiere.description|truncatewords:10 }}
-                  </p>
-                {% endif %}
-              </div>
-
-              <!-- Replace the existing form in your template with this corrected version -->
-<form method="post" action="{% url 'modifier_chef' %}" class="affectation-form" data-filiere-id="{{ filiere.id }}">
-  {% csrf_token %}
-  <input type="hidden" name="filiere_id" value="{{ filiere.id }}">
-  
-  <div class="form-row">
-    <div class="select-wrapper">
-      <select name="utilisateur_id" class="chef-select">
-        <option value="">Changer pour un chef existant...</option>
-
-        <optgroup label="Chefs de filière">
-          {% for utilisateur in chefs_filiere %}
-            <option value="user-{{ utilisateur.id }}">
-              {{ utilisateur.first_name }} {{ utilisateur.last_name }} ({{ utilisateur.username }})
-            </option>
-          {% endfor %}
-        </optgroup>
-
-        <optgroup label="Professeurs">
-          {% for prof in professeurs %}
-            <option value="prof-{{ prof.id }}">
-              {{ prof.prenom }} {{ prof.nom }} ({{ prof.email }})
-            </option>
-          {% endfor %}
-        </optgroup>
-      </select>
-    </div>
-    
-    <button type="submit" class="assign-btn modify-btn">
-      <i class="fas fa-user-edit"></i>
-      Modifier
-    </button>
-  </div>
-
-  <div class="action-buttons">
-    <button type="button" class="toggle-btn" onclick="toggleNewChefForm(this)">
-      <i class="fas fa-user-plus"></i>
-      Créer nouveau chef
-    </button>
-  </div>
-
-  <div class="new-chef-fields">
-    <div class="form-section-title">
-      <i class="fas fa-user-plus"></i>
-      Créer un nouveau chef de filière
-    </div>
-    <div class="input-group">
-      <input type="text" name="new_chef_first_name" class="input-field" placeholder="Prénom">
-      <input type="text" name="new_chef_last_name" class="input-field" placeholder="Nom">
-    </div>
-    <div class="input-group">
-      <input type="text" name="new_chef_username" class="input-field" placeholder="Nom d'utilisateur">
-      <input type="email" name="new_chef_email" class="input-field" placeholder="Email">
-    </div>
-    <div class="input-group">
-      <input type="password" name="new_chef_password" class="input-field" placeholder="Mot de passe">
-      <input type="password" name="new_chef_confirm_password" class="input-field" placeholder="Confirmer le mot de passe">
-    </div>
-  </div>
-</form>
+    <div class="dashboard-container">
+        
+        
+        <div class="loading-message" id="loading">
+            <div>Chargement du dashboard...</div>
+            <div style="margin-top: 10px;">
+                <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #C8A8E9; border-radius: 50%; border-top-color: transparent; animation: spin 1s linear infinite;"></div>
             </div>
-          {% endfor %}
         </div>
-      {% endif %}
-
-      <!-- Section des filières avec chef -->
-      {% if filieres_avec_chef %}
-        <div class="section-title">
-          <i class="fas fa-check-circle"></i>
-          Filières avec Chef de Filière Assigné
-        </div>
-
-        <div class="filieres-grid">
-          {% for filiere in filieres_avec_chef %}
-            <div class="filiere-card has-chef">
-              <div class="filiere-header">
-                <div class="filiere-name">{{ filiere.nom }}</div>
-                <div class="status-badge has-chef">
-                  <i class="fas fa-user-check"></i>
-                  Chef Assigné
-                </div>
-              </div>
-              
-              <div class="current-chef">
-                <p class="chef-name">
-                  <i class="fas fa-user-tie"></i>
-                  {{ filiere.chef.first_name }} {{ filiere.chef.last_name }}
-                </p>
-                <p style="font-size: 0.85rem; color: var(--neutral-color); margin-top: 3px;">
-                  {{ filiere.chef.username }} • {{ filiere.chef.email }}
-                </p>
-              </div>
-              
-              <div class="filiere-info">
-                <p>
-                  <i class="fas fa-users"></i>
-                  <strong>{{ filiere.nombre_etudiants }}</strong> étudiant{{ filiere.nombre_etudiants|pluralize }}
-                </p>
-                <p>
-                  <i class="fas fa-book"></i>
-                  <strong>{{ filiere.cours.count }}</strong> cours
-                </p>
-              </div>
-
-              <form method="post" action="{% url 'modifier_chef' %}" class="affectation-form" data-filiere-id="{{ filiere.id }}">
-                {% csrf_token %}
-                <input type="hidden" name="filiere_id" value="{{ filiere.id }}">
-                
-                <div class="form-row">
-                  <div class="select-wrapper">
-                    <select name="utilisateur_id" class="chef-select">
-  <option value="">Changer pour un chef existant...</option>
-
-  <optgroup label="Chefs de filière">
-    {% for utilisateur in chefs_filiere %}
-      <option value="user-{{ utilisateur.id }}">
-        {{ utilisateur.first_name }} {{ utilisateur.last_name }} ({{ utilisateur.username }})
-      </option>
-    {% endfor %}
-  </optgroup>
-
-  <optgroup label="Professeurs">
-    {% for prof in professeurs %}
-      <option value="prof-{{ prof.id }}">
-        {{ prof.prenom }} {{ prof.nom }} ({{ prof.email }})
-      </option>
-    {% endfor %}
-  </optgroup>
-</select>
-
-                  </div>
-                  
-                  <button type="submit" class="assign-btn modify-btn">
-                    <i class="fas fa-user-edit"></i>
-                    Modifier
-                  </button>
-                </div>
-
-                <div class="action-buttons">
-                  <button type="button" class="toggle-btn" onclick="toggleNewChefForm(this)">
-                    <i class="fas fa-user-plus"></i>
-                    Créer nouveau chef
-                  </button>
-                </div>
-
-                <div class="new-chef-fields">
-                  <div class="form-section-title">
-                    <i class="fas fa-user-plus"></i>
-                    Créer un nouveau chef de filière
-                  </div>
-                  <div class="input-group">
-                    <input type="text" name="new_chef_first_name" class="input-field" placeholder="Prénom">
-                    <input type="text" name="new_chef_last_name" class="input-field" placeholder="Nom">
-                  </div>
-                  <div class="input-group">
-                    <input type="text" name="new_chef_username" class="input-field" placeholder="Nom d'utilisateur">
-                    <input type="email" name="new_chef_email" class="input-field" placeholder="Email">
-                  </div>
-                  <div class="input-group">
-                    <input type="password" name="new_chef_password" class="input-field" placeholder="Mot de passe">
-                    <input type="password" name="new_chef_confirm_password" class="input-field" placeholder="Confirmer le mot de passe">
-                  </div>
-                </div>
-              </form>
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      <!-- Message si aucune filière -->
-      {% if not filieres_sans_chef and not filieres_avec_chef %}
-        <div class="no-filieres">
-          <i class="fas fa-info-circle"></i>
-          <h3>Aucune filière trouvée</h3>
-          <p>Il n'y a actuellement aucune filière dans le système.</p>
-        </div>
-      {% endif %}
+        
+        <iframe id="dashboard-frame" class="dashboard-frame" src="http://127.0.0.1:8050/" style="display: none;"></iframe>
     </div>
-  </div>
 
-  <script>
-    // Animation pour les cartes
-    document.addEventListener('DOMContentLoaded', function() {
-      const cards = document.querySelectorAll('.filiere-card');
-      cards.forEach((card, index) => {
-        card.style.animationDelay = `${index * 0.1}s`;
-        card.style.animation = 'fadeIn 0.5s ease forwards';
-      });
-    });
-
-    // Fonction pour basculer l'affichage du formulaire de nouveau chef
-    function toggleNewChefForm(button) {
-      const form = button.closest('.affectation-form');
-      const newChefFields = form.querySelector('.new-chef-fields');
-      const select = form.querySelector('.chef-select');
-      
-      if (newChefFields.classList.contains('show')) {
-        newChefFields.classList.remove('show');
-        button.classList.remove('active');
-        button.innerHTML = '<i class="fas fa-user-plus"></i> Créer nouveau chef';
-        select.disabled = false;
-        select.required = true;
-        
-        // Réinitialiser les champs
-        const inputs = newChefFields.querySelectorAll('.input-field');
-        inputs.forEach(input => {
-          input.value = '';
-          input.required = false;
-        });
-      } else {
-        newChefFields.classList.add('show');
-        button.classList.add('active');
-        button.innerHTML = '<i class="fas fa-times"></i> Annuler création';
-        select.disabled = true;
-        select.required = false;
-        select.value = '';
-        
-        // Rendre les champs obligatoires
-        const inputs = newChefFields.querySelectorAll('.input-field');
-        inputs.forEach(input => {
-          input.required = true;
-        });
-      }
-    }
-
-    // Gestion des formulaires d'affectation
-    document.querySelectorAll('.affectation-form').forEach(form => {
-      form.addEventListener('submit', function(e) {
-        const button = form.querySelector('button[type="submit"]');
-        const select = form.querySelector('.chef-select');
-        const newChefFields = form.querySelector('.new-chef-fields');
-        const isNewChefMode = newChefFields.classList.contains('show');
-        
-        if (isNewChefMode) {
-          // Validation pour nouveau chef
-          const requiredFields = newChefFields.querySelectorAll('.input-field[required]');
-          let isValid = true;
-          
-          requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-              isValid = false;
-              field.style.borderColor = 'var(--negative-color)';
-            } else {
-              field.style.borderColor = 'var(--border-light)';
-            }
-          });
-          
-          // Vérification des mots de passe
-          const password = form.querySelector('input[name="new_chef_password"]').value;
-          const confirmPassword = form.querySelector('input[name="new_chef_confirm_password"]').value;
-          
-                    if (password !== confirmPassword) {
-            isValid = false;
-            alert('Les mots de passe ne correspondent pas.');
-            form.querySelector('input[name="new_chef_password"]').style.borderColor = 'var(--negative-color)';
-            form.querySelector('input[name="new_chef_confirm_password"]').style.borderColor = 'var(--negative-color)';
-          } else {
-            form.querySelector('input[name="new_chef_password"]').style.borderColor = 'var(--border-light)';
-            form.querySelector('input[name="new_chef_confirm_password"]').style.borderColor = 'var(--border-light)';
-          }
-
-          if (!isValid) {
-            e.preventDefault(); // Empêche l'envoi du formulaire
-            alert('Veuillez remplir tous les champs correctement pour créer un nouveau chef de filière.');
-          }
-
-        } else {
-          // Mode sélection existante
-          if (!select.value) {
-            e.preventDefault(); // Empêche l'envoi du formulaire
-            alert('Veuillez sélectionner un chef de filière ou en créer un nouveau.');
-            select.style.borderColor = 'var(--negative-color)';
-          } else {
-            select.style.borderColor = 'var(--border-light)';
-          }
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
-      });
-    });
+    </style>
 
-  function activateButton(button) {
+    <script>
+        // Fonction pour vérifier si le serveur Dash est prêt
+        function checkDashServer() {
+            fetch('http://127.0.0.1:8050/')
+                .then(response => {
+                    if (response.ok) {
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('dashboard-frame').style.display = 'block';
+                    } else {
+                        setTimeout(checkDashServer, 1000);
+                    }
+                })
+                .catch(error => {
+                    setTimeout(checkDashServer, 1000);
+                });
+        }
+
+        // Démarrer la vérification après 2 secondes
+        setTimeout(checkDashServer, 2000);
+        
+        // Démarrer le serveur Dash
+        fetch('/start-dash/', {method: 'POST'})
+            .then(response => response.json())
+            .then(data => console.log('Dash server starting...'));
+
+        function activateButton(button) {
     document.querySelectorAll('.nav-btn').forEach(btn => {
       btn.classList.remove('active-button');
     });
@@ -1080,6 +840,7 @@
       }
     });
   });
-
-
-</script>
+    </script>
+</body>
+</html>
+"""

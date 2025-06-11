@@ -495,7 +495,7 @@
   <nav>
     <a href="{% url 'soumettre_feedback' %}" onclick="activateButton(this)" class="nav-btn">Feedbacks</a>
     <a href="{% url 'etudiant_dashboard' %}" onclick="activateButton(this)" class="nav-btn active-button">Historiques</a>
-    <a href="{% url 'dashboard' %}" onclick="activateButton(this)" class="nav-btn">Accueil</a>
+    <a href="{% url 'dashboard' %}" onclick="activateButton(this)" class="nav-btn ">Accueil</a>
     <a href="{% url 'login' %}" onclick="activateButton(this)" class="nav-btn">Déconnexion</a>
   </nav>
 </header>
@@ -574,14 +574,18 @@
             {{ feedback.commentaire }}
           </div>
           
-          {% if feedback.suggestions %}
-          <div class="feedback-suggestions">
-            <div class="suggestions-title">
-              <i class="fas fa-lightbulb"></i> Suggestions d'amélioration
-            </div>
-            {{ feedback.suggestions }}
-          </div>
-          {% endif %}
+          <!-- Suggestions (seulement si elles existent) -->
+ <div class="feedback-suggestions">
+  <div class="suggestions-title">
+    <i class="fas fa-lightbulb"></i> Suggestions d'amélioration
+  </div>
+  {% if feedback.suggestions %}
+    {{ feedback.suggestions }}
+  {% else %}
+    <em>Aucune suggestion fournie.</em>
+  {% endif %}
+</div>
+
           
           <div class="feedback-footer">
             <div>
