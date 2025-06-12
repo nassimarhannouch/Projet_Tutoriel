@@ -1,0 +1,150 @@
+{% block content %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f9f9ff;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      padding: 20px 40px;
+      background: linear-gradient(to right, #fc67fa, #6e67ff);
+      color: white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+
+    .logo img {
+      height: 50px;
+      margin-right: 15px;
+    }
+
+    h2 {
+      text-align: center;
+      margin: 40px 0 20px;
+      font-size: 2rem;
+      color: #444;
+    }
+
+    .profile-box {
+      max-width: 520px;
+      margin: 30px auto 60px;
+      background: #fff;
+      padding: 35px;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .avatar {
+      text-align: center;
+      font-size: 5rem;
+      color: #6e67ff;
+      margin-bottom: 20px;
+    }
+
+    .username {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: #222;
+      margin-bottom: 8px;
+    }
+
+    .role {
+      text-align: center;
+      font-size: 1.1rem;
+      color: #888;
+      margin-bottom: 25px;
+    }
+
+    .profile-info {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 0 10px;
+    }
+
+    .profile-info div {
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+      color: #555;
+      padding: 10px;
+      background: #f3f2ff;
+      border-radius: 8px;
+      transition: background 0.3s ease;
+    }
+
+    .profile-info div:hover {
+      background: #ebe9ff;
+    }
+
+    .profile-info i {
+      margin-right: 12px;
+      color: #6e67ff;
+      min-width: 25px;
+      text-align: center;
+      font-size: 1.2rem;
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 15px 20px;
+      }
+
+      .profile-box {
+        margin: 20px;
+        padding: 25px;
+      }
+
+      .username {
+        font-size: 1.3rem;
+      }
+
+      .profile-info div {
+        font-size: 0.95rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  
+
+  <div class="profile-box">
+    <div class="avatar"><i class="fa fa-user-circle"></i></div>
+    <div class="username">{{ utilisateur.username }}</div>
+    <div class="role">{{ utilisateur.role }}</div>
+    <div class="profile-info">
+      <div><i class="fa fa-envelope"></i> {{ utilisateur.email }}</div>
+      <div><i class="fa fa-phone"></i> {{ utilisateur.telephone }}</div>
+      <div><i class="fa fa-graduation-cap"></i> {{ utilisateur.filiere.nom }}</div>
+      <div><i class="fa fa-calendar"></i> {{ utilisateur.promotion.nom }}</div>
+    </div>
+  </div>
+</body>
+</html>
+{% endblock %}

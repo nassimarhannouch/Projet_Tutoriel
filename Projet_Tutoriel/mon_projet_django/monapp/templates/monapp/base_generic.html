@@ -1,0 +1,25 @@
+<!-- templates/base_generic.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Titre par défaut{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <!-- Ajoutez un en-tête commun ici -->
+        <h1>Bienvenue sur le site !</h1>
+    </header>
+
+    <div class="content">
+        {% block content %}
+        <!-- Contenu de la page spécifique -->
+        {% endblock %}
+    </div>
+
+    <footer>
+        <!-- Ajoutez un pied de page ici -->
+        <p>Copyright 2025</p>
+    </footer>
+</body>
+</html>
