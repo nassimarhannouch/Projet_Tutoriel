@@ -1,10 +1,10 @@
-# 🎓 Système interactif d’analyse des feedbacks étudiants
+#  Système interactif d’analyse des feedbacks étudiants
 
 Ce projet a pour objectif de faciliter la collecte, l’analyse et l’exploitation pédagogique des retours étudiants via une plateforme intelligente et interactive.
 
 ---
 
-## 🔧 Technologies utilisées
+##  Technologies utilisées
 
 - **Frontend** : HTML, CSS, JavaScript
 - **Backend** : Django (Python)
@@ -21,7 +21,7 @@ Ce projet a pour objectif de faciliter la collecte, l’analyse et l’exploitat
 
 ---
 
-## 🧠 Fonctionnalités principales
+##  Fonctionnalités principales
 
 - 🔹 Interface étudiante avec chatbot conversationnel
 - 🔹 Détection automatique de la langue (FR / EN)
@@ -32,6 +32,20 @@ Ce projet a pour objectif de faciliter la collecte, l’analyse et l’exploitat
 - 🔹 Gestion des utilisateurs, rôles et feedbacks
 
 ---
+##  Installation des bibliothèques nécessaires
+
+```bash
+pip install django
+pip install dash==2.11.1
+pip install django-plotly-dash
+pip install scikit-learn
+pip install pandas
+pip install numpy
+pip install matplotlib
+pip install joblib
+pip install langdetect
+pip install nltk
+pip install spacy
 
 ## ⚙️ Installation
 
